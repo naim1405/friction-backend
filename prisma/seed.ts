@@ -1,4 +1,4 @@
-import { UserRole } from '../generated/prisma/enums';
+import { UserRole } from '../src/generated/prisma/enums';
 import { prisma } from '../src/lib/prisma';
 import bcrypt from 'bcrypt';
 
