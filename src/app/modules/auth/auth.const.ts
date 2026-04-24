@@ -1,0 +1,1 @@
+export const RESET_TOKEN_VALIDITY_MS = 5 * 60 * 1000;
