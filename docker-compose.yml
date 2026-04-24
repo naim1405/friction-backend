@@ -5,7 +5,7 @@ services:
     environment:
       MONGO_INITDB_DATABASE: test_db
     ports:
-      - "27017:27017"
+      - "27018:27017"
     volumes:
       - mongo_data:/data/db
     restart: unless-stopped
@@ -23,6 +23,8 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ./.env
+    environment:
+      DATABASE_URL: mongodb://db:27017/test_db
     ports:
       - "5000:5000"
     volumes:
