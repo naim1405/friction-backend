@@ -1,7 +1,8 @@
-export const taskSearchableFields = ['title', 'category'];
+export const taskSearchableFields = ['title', 'slug', 'category', 'summary'];
 export const taskFilterableFields = [
-	'searchTerm',
-	'title',
-	'category',
-	'isPublished',
+  'searchTerm',
+  'slug',
+  'title',
+  'category',
+  'isPublished',
 ];

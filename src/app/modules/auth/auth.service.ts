@@ -19,7 +19,6 @@ import { sendEmail } from '../../../helpers/sendEmail';
 import { RESET_TOKEN_VALIDITY_MS } from './auth.const';
 import { getResetPasswordEmailHtml } from '../../../const/Reset';
 
-
 const loginUser = async (req: Request) => {
   const payload: ILoginUser = req.body;
 
@@ -55,25 +54,21 @@ const loginUser = async (req: Request) => {
 
   const token = await jwtHelpers.generateTokenPair(JwtPayload);
 
-  const activeTokens = await prisma.activeToken.findMany({
+  await prisma.activeToken.deleteMany({
     where: {
-      userId: user.id
+      userId: user.id,
     },
   });
 
-  activeTokens.forEach(async (t) => {
-    await prisma.activeToken.delete({ where: { id: t.id } });
-  });
-
-  createPrismaToken({ id: user.id, tokenId: token.tokenId, ip, device });
+  await createPrismaToken({ id: user.id, tokenId: token.tokenId, ip, device });
 
   return {
     access: token.accessToken,
     refresh: token.refreshToken,
-    user:{
-        id: user.id,
-        email: user.email,
-    }
+    user: {
+      id: user.id,
+      email: user.email,
+    },
   };
 };
 
@@ -158,10 +153,10 @@ const logout = async (req: Request) => {
 };
 
 const forgotPassword = async (req: Request) => {
-  
   const payload: IForgotPassword = req.body;
 
-  const genericMessage = 'If an account exists with this email, a reset link has been sent.';
+  const genericMessage =
+    'If an account exists with this email, a reset link has been sent.';
 
   const user = await prisma.user.findUnique({
     where: {
@@ -180,30 +175,29 @@ const forgotPassword = async (req: Request) => {
     };
   }
 
-  const { token: resetJwtToken, randomToken } = await jwtHelpers.generateResetPasswordToken(user.id);
+  const { token: resetJwtToken, randomToken } =
+    await jwtHelpers.generateResetPasswordToken(user.id);
 
   const now = new Date();
   const expiresAt = new Date(now.getTime() + RESET_TOKEN_VALIDITY_MS);
 
   await prisma.$transaction([
-    
     prisma.resetPasswordRecord.deleteMany({
       where: {
-        userId: user.id
-      }
+        userId: user.id,
+      },
     }),
 
     prisma.resetPasswordRecord.create({
       data: {
         userId: user.id,
-        tokenHash:'reset_' + randomToken,
+        tokenHash: 'reset_' + randomToken,
         expiresAt,
       },
     }),
   ]);
 
   const resetLink = `${config.frontend_url}/reset?token=${resetJwtToken}`;
-
 
   await sendEmail(user.email, getResetPasswordEmailHtml(resetLink));
 
@@ -218,9 +212,14 @@ const resetPassword = async (req: Request) => {
 
   let decodedResetToken;
   try {
-    decodedResetToken = await jwtHelpers.verifyResetPasswordToken(payload.token);
+    decodedResetToken = await jwtHelpers.verifyResetPasswordToken(
+      payload.token
+    );
   } catch {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid or expired reset token');
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Invalid or expired reset token'
+    );
   }
 
   if (
@@ -228,7 +227,10 @@ const resetPassword = async (req: Request) => {
     !decodedResetToken.userId ||
     !decodedResetToken.randomToken
   ) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid or expired reset token');
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Invalid or expired reset token'
+    );
   }
 
   const tokenHash = `reset_${decodedResetToken.randomToken}`;
@@ -248,7 +250,10 @@ const resetPassword = async (req: Request) => {
   });
 
   if (!resetRecord) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid or expired reset token');
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Invalid or expired reset token'
+    );
   }
 
   const user = await prisma.user.findUnique({
@@ -285,7 +290,7 @@ const resetPassword = async (req: Request) => {
       where: {
         id: resetRecord.id,
         tokenHash,
-      }
+      },
     }),
   ]);
 

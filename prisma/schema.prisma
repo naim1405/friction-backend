@@ -1,212 +1,229 @@
 generator client {
-    provider = "prisma-client"
-    output   = "../src/generated/prisma"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
-    provider = "mongodb"
-    url      = env("DATABASE_URL")
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-    id        String     @id @default(auto()) @map("_id") @db.ObjectId
-    email     String     @unique
-    phone     String     @unique
-    password  String
-    createdAt DateTime   @default(now())
-    updatedAt DateTime   @updatedAt
-    status    UserStatus @default(ACTIVE)
-    role      UserRole
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  email     String     @unique
+  phone     String     @unique
+  password  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  status    UserStatus @default(ACTIVE)
+  role      UserRole
 
-    // Existing relations
-    admins               Admin[]
-    customers            Customer[]
-    activeTokens         ActiveToken[]
-    resetPasswordRecords ResetPasswordRecord[]
+  // Existing relations
+  admins               Admin[]
+  customers            Customer[]
+  activeTokens         ActiveToken[]
+  resetPasswordRecords ResetPasswordRecord[]
 
-    comments Comment[]
-    votes    Vote[]
+  comments Comment[]
+  votes    Vote[]
 
-    @@map("users")
+  @@map("users")
 }
 
 model Admin {
-    id        String  @id @default(auto()) @map("_id") @db.ObjectId
-    name      String
-    email     String  @unique
-    phone     String  @unique
-    isDeleted Boolean @default(false)
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String  @unique
+  phone     String  @unique
+  isDeleted Boolean @default(false)
 
-    userId String @db.ObjectId
-    user   User?  @relation(fields: [userId], references: [id])
+  userId String @db.ObjectId
+  user   User?  @relation(fields: [userId], references: [id])
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    @@map("admins")
+  @@map("admins")
 }
 
 model Customer {
-    id        String  @id @default(auto()) @map("_id") @db.ObjectId
-    name      String
-    email     String  @unique
-    phone     String  @unique
-    isDeleted Boolean @default(false)
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String  @unique
+  phone     String  @unique
+  isDeleted Boolean @default(false)
 
-    userId String @db.ObjectId
-    user   User?  @relation(fields: [userId], references: [id])
+  userId String @db.ObjectId
+  user   User?  @relation(fields: [userId], references: [id])
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    @@map("customers")
+  @@map("customers")
 }
 
 model ActiveToken {
-    id         String    @id @default(auto()) @map("_id") @db.ObjectId
-    tokenId    String    @unique
-    userId     String    @db.ObjectId
-    ipAddress  String?
-    deviceInfo Json?
-    lastUsed   DateTime  @default(now())
-    expiresAt  DateTime
-    createdAt  DateTime  @default(now())
-    tokenType  TokenType
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  tokenId    String    @unique
+  userId     String    @db.ObjectId
+  ipAddress  String?
+  deviceInfo Json?
+  lastUsed   DateTime  @default(now())
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  tokenType  TokenType
 
-    user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
-    @@map("active_token")
+  @@map("active_token")
 }
 
 model ResetPasswordRecord {
-    id        String   @id @default(auto()) @map("_id") @db.ObjectId
-    userId    String   @db.ObjectId
-    tokenHash String   @unique
-    expiresAt DateTime
-    createdAt DateTime @default(now())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
-    user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
-    @@index([userId])
-    @@index([expiresAt])
-    @@map("reset_password_records")
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("reset_password_records")
 }
 
 model Task {
-    id          String  @id @default(auto()) @map("_id") @db.ObjectId
-    title       String
-    description String?
-    category    String?
-    isPublished Boolean @default(true)
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  slug             String   @unique
+  title            String
+  tagline          String?
+  description      String?
+  summary          String?
+  category         String?
+  estimatedDays    String?
+  estimatedCostBdt Float?
+  difficulty       String?
+  documents        String[]
+  aiSummary        String?
+  communityTip     String?
+  coverLabel       String?
+  reviewCount      Int      @default(0)
+  savedCount       Int      @default(0)
+  popularityScore  Int      @default(0)
+  isPublished      Boolean  @default(true)
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    steps Step[]
+  steps Step[]
 }
 
 model Step {
-    id          String  @id @default(auto()) @map("_id") @db.ObjectId
-    title       String
-    description String?
-    order       Int
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  order       Int
 
-    estimatedTime String?
-    estimatedCost Float?
+  estimatedTime      String?
+  estimatedCost      Float?
+  documents          String[]
+  tips               String[]
+  contributionLocked Boolean  @default(false)
 
-    taskId String @db.ObjectId
-    task   Task   @relation(fields: [taskId], references: [id])
+  taskId String @db.ObjectId
+  task   Task   @relation(fields: [taskId], references: [id])
 
-    locationId String?   @db.ObjectId
-    location   Location? @relation(fields: [locationId], references: [id])
+  locationId String?   @db.ObjectId
+  location   Location? @relation(fields: [locationId], references: [id])
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    votes    Vote[]
-    comments Comment[]
+  votes    Vote[]
+  comments Comment[]
 }
 
 model Location {
-    id      String  @id @default(auto()) @map("_id") @db.ObjectId
-    name    String
-    address String?
-    city    String?
-    country String?
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  name    String
+  address String?
+  city    String?
+  country String?
 
-    latitude  Float
-    longitude Float
+  latitude  Float
+  longitude Float
 
-    type String?
+  type        String?
+  officeHours String?
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    steps Step[]
+  steps Step[]
 }
 
 model Vote {
-    id    String @id @default(auto()) @map("_id") @db.ObjectId
-    value Int
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  value Int
 
-    userId String @db.ObjectId
-    stepId String @db.ObjectId
+  userId String @db.ObjectId
+  stepId String @db.ObjectId
 
-    user User @relation(fields: [userId], references: [id])
-    step Step @relation(fields: [stepId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+  step Step @relation(fields: [stepId], references: [id])
 
-    createdAt DateTime @default(now())
+  createdAt DateTime @default(now())
 
-    @@unique([userId, stepId])
+  @@unique([userId, stepId])
 }
 
 model Comment {
-    id      String @id @default(auto()) @map("_id") @db.ObjectId
-    content String
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  content String
 
-    userId String @db.ObjectId
-    stepId String @db.ObjectId
+  userId String @db.ObjectId
+  stepId String @db.ObjectId
 
-    user User @relation(fields: [userId], references: [id])
-    step Step @relation(fields: [stepId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+  step Step @relation(fields: [stepId], references: [id])
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum TokenType {
-    ACCESS
-    REFRESH
+  ACCESS
+  REFRESH
 }
 
 enum AuditAction {
-    CREATE
-    READ
-    UPDATE
-    DELETE
-    LOGIN
-    LOGOUT
-    LOGIN_FAILED
-    PASSWORD_CHANGE
-    PASSWORD_RESET
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  LOGIN_FAILED
+  PASSWORD_CHANGE
+  PASSWORD_RESET
 }
 
 enum AuditStatus {
-    SUCCESS
-    FAILED
-    PENDING
-    CANCELLED
+  SUCCESS
+  FAILED
+  PENDING
+  CANCELLED
 }
 
 enum UserRole {
-    SUPER_ADMIN
-    ADMIN
-    CUSTOMER
+  SUPER_ADMIN
+  ADMIN
+  CUSTOMER
 }
 
 enum UserStatus {
-    BLOCKED
-    ACTIVE
-    PENDING
-    DELETED
+  BLOCKED
+  ACTIVE
+  PENDING
+  DELETED
 }

@@ -8,8 +8,17 @@ let server: Server;
 
 async function bootstrap() {
   try {
-    await prisma.$connect();
-    logger.info('Database connected successfully');
+    try {
+      await prisma.$connect();
+      logger.info('Database connected successfully');
+    } catch (error) {
+      logger.warn(
+        'Database unavailable; starting with built-in Shohoj Path data',
+        {
+          error,
+        }
+      );
+    }
 
     server = app.listen(config.port, () => {
       const address = server.address();

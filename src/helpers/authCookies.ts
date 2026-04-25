@@ -1,6 +1,6 @@
-import { type CookieOptions, type Response } from 'express';
+import { type CookieOptions, type Request, type Response } from 'express';
 
-const isDevelopment = process.env['NODE_ENV'] === 'development';
+const isDevelopment = process.env['NODE_ENV']?.toLowerCase() === 'development';
 
 const cookieOptions: CookieOptions = {
   httpOnly: true,
@@ -10,8 +10,11 @@ const cookieOptions: CookieOptions = {
 };
 
 export const getCookiesInExpress = (req: Request) => {
-  const accessToken = (req as any).signedCookies.accessToken;
-  const refreshToken = (req as any).signedCookies.refreshToken;
+  const signedCookies = req.signedCookies as Partial<
+    Record<'accessToken' | 'refreshToken', string>
+  >;
+  const accessToken = signedCookies.accessToken;
+  const refreshToken = signedCookies.refreshToken;
 
   return { accessToken, refreshToken };
 };
