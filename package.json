@@ -8,7 +8,7 @@
     "lint": "eslint . --ext .ts",
     "format": "prettier --write .",
     "dev": "nodemon -L --watch src --ext ts,json --exec \"tsx src/server.ts\"",
-    "start": "nodemon dist/server.js",
+    "start": "node dist/server.js",
     "build": "tsc",
     "migrate": "npx prisma migrate dev --name init",
     "generate": "npx prisma generate",

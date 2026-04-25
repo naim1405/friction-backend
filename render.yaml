@@ -1,0 +1,57 @@
+services:
+  - type: web
+    name: friction-server
+    runtime: node
+    plan: free
+    autoDeploy: true
+    buildCommand: npm ci && npm run generate && npm run build
+    preDeployCommand: npx prisma db push
+    startCommand: node dist/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: EXPIRES_IN
+        value: 15m
+      - key: REFRESH_SECRET
+        generateValue: true
+      - key: REFRESH_EXPIRES_IN
+        value: 7d
+      - key: PASS_RESET_EXPIRATION_TIME
+        value: 10m
+      - key: SALT_ROUND
+        value: "10"
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: BACKEND_URL
+        sync: false
+      - key: RESET_LINK
+        sync: false
+      - key: EMAIL
+        sync: false
+      - key: APP_PASS
+        sync: false
+      - key: SUPERADMINEMAIL
+        sync: false
+      - key: SUPERADMINPHONE
+        sync: false
+      - key: SUPERADMINPASSWORD
+        sync: false
+
+      # Optional Loki logging
+      - key: LOKI_ENABLED
+        value: "false"
+      - key: LOKI_HOST
+        sync: false
+      - key: LOKI_APP_NAME
+        value: friction-server
+      - key: LOKI_BASIC_AUTH
+        sync: false
