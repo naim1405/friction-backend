@@ -3,6 +3,5 @@ node_modules
 .env
 
 dist
-secret
 
 src/generated/prisma
