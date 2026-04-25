@@ -58,6 +58,7 @@ app.use((req: Request, res: Response, next) => {
 const allowedOrigins = process.env['ALLOWED_ORIGINS']?.split(',') ?? [
   'http://localhost:3000',
   'http://localhost:3001',
+  'https://friction-roan.vercel.app',
 ];
 
 const corsOptions = {
