@@ -1,8 +1,9 @@
 export type ICreateCommentPayload = {
-	stepId: string;
+	taskId: string;
 	content: string;
 };
 
 export type ICommentFilters = {
-	stepId?: string;
+	taskId?: string;
+	tastId?: string;
 };

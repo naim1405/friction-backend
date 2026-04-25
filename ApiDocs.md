@@ -932,13 +932,13 @@ This is a Task Management System API built with Express.js, TypeScript, and Mong
 
 ### Create Comment
 - **Endpoint:** `POST /comments`
-- **Description:** Create a new comment on a step
+- **Description:** Create a new comment on a task
 - **Authentication:** Required (SUPER_ADMIN, ADMIN, CUSTOMER)
 - **Request Body:**
   ```json
   {
-    "stepId": "step_id",
-    "content": "This is a comment on the step"
+    "taskId": "task_id",
+    "content": "This is a comment on the task"
   }
   ```
 - **Response (200):**
@@ -949,26 +949,30 @@ This is a Task Management System API built with Express.js, TypeScript, and Mong
     "message": "Comment created successfully!",
     "data": {
       "id": "comment_id",
-      "stepId": "step_id",
+      "taskId": "task_id",
       "userId": "user_id",
-      "content": "This is a comment on the step",
+      "content": "This is a comment on the task",
       "createdAt": "2026-04-25T10:00:00Z",
       "updatedAt": "2026-04-25T10:00:00Z"
     }
   }
   ```
 - **Validation Rules:**
-  - stepId: required, must exist
+  - taskId: required, must exist
   - content: required, minimum 1 character
 
 ### Get Comments
 - **Endpoint:** `GET /comments`
-- **Description:** Get comments for a specific step
+- **Description:** Get comments for a specific task
 - **Authentication:** None (Public)
 - **Query Parameters:**
-  - `stepId` (required): Step ID to fetch comments for
+  - `taskId` (required): Task ID to fetch comments for
+  - `tastId` (optional alias): Alternate key accepted for compatibility with clients sending `tastId`
   - `page` (optional): Page number (default: 1)
   - `limit` (optional): Items per page (default: 10)
+- **Example Requests:**
+  - `GET /comments?taskId=task_id`
+  - `GET /comments?tastId=task_id`
 - **Response (200):**
   ```json
   {
@@ -978,7 +982,7 @@ This is a Task Management System API built with Express.js, TypeScript, and Mong
     "data": [
       {
         "id": "comment_id",
-        "stepId": "step_id",
+        "taskId": "task_id",
         "userId": "user_id",
         "content": "This is a comment",
         "user": {

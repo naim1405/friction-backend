@@ -6,19 +6,19 @@ import type { ICommentFilters, ICreateCommentPayload } from './comment.interface
 
 const createComment = async (user: JWTPayload, payload: ICreateCommentPayload) => {
 	
-    const step = await prisma.step.findUnique({
-		where: { id: payload.stepId },
+    const task = await prisma.task.findUnique({
+		where: { id: payload.taskId },
 		select: { id: true },
 	});
 
-	if (!step) {
-		throw new ApiError(httpStatus.NOT_FOUND, 'Step not found');
+	if (!task) {
+		throw new ApiError(httpStatus.NOT_FOUND, 'Task not found');
 	}
 
 	const createdComment = await prisma.comment.create({
 		data: {
 			content: payload.content,
-			stepId: payload.stepId,
+			taskId: payload.taskId,
 			userId: user.userId,
 		},
 	});
@@ -27,14 +27,15 @@ const createComment = async (user: JWTPayload, payload: ICreateCommentPayload) =
 };
 
 const getComments = async (filters: ICommentFilters) => {
-	
-    if (!filters.stepId) {
-		throw new ApiError(httpStatus.BAD_REQUEST, 'Step id is required');
+	const taskId = filters.taskId ?? filters.tastId;
+
+    if (!taskId) {
+		throw new ApiError(httpStatus.BAD_REQUEST, 'Task id is required');
 	}
 
 	const comments = await prisma.comment.findMany({
 		where: {
-			stepId: filters.stepId,
+			taskId,
 		},
 		orderBy: {
 			createdAt: 'desc',

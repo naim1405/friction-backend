@@ -1,1 +1,1 @@
-export const commentFilterableFields = ['stepId'];
+export const commentFilterableFields = ['taskId', 'tastId'];

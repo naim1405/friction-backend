@@ -160,13 +160,17 @@ const getTaskById = async (id: string) => {
         id: id,
       },
       include: {
+        comments: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         steps: {
           orderBy: {
             order: 'asc',
           },
           include: {
             location: true,
-            comments: true,
             votes: true,
           },
         },
@@ -284,13 +288,17 @@ const createTask = async (payload: ICreateTaskPayload) => {
   return prisma.task.findUnique({
     where: { id: createdTask.id },
     include: {
+      comments: {
+        orderBy: {
+          createdAt: 'desc',
+        },
+      },
       steps: {
         orderBy: {
           order: 'asc',
         },
         include: {
           location: true,
-          comments: true,
           votes: true,
         },
       },

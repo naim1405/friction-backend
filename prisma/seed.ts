@@ -70,6 +70,14 @@ async function seedShohojPathData() {
   const existingTaskIds = existingTasks.map((task) => task.id);
 
   if (existingTaskIds.length > 0) {
+    await prisma.comment.deleteMany({
+      where: {
+        taskId: {
+          in: existingTaskIds,
+        },
+      },
+    });
+
     const existingSteps = await prisma.step.findMany({
       where: {
         taskId: {
@@ -84,13 +92,6 @@ async function seedShohojPathData() {
 
     if (existingStepIds.length > 0) {
       await prisma.vote.deleteMany({
-        where: {
-          stepId: {
-            in: existingStepIds,
-          },
-        },
-      });
-      await prisma.comment.deleteMany({
         where: {
           stepId: {
             in: existingStepIds,
