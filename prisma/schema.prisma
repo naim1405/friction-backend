@@ -201,6 +201,7 @@ enum AuditStatus {
 enum UserRole {
     SUPER_ADMIN
     ADMIN
+    CUSTOMER
 }
 
 enum UserStatus {

@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.post(
 	'/',
-	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.CUSTOMER),
 	validateRequest(CommentValidation.createCommentSchema),
 	CommentController.createComment
 );
@@ -21,7 +21,7 @@ router.get(
 
 router.delete(
 	'/:id',
-	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.CUSTOMER),
 	CommentController.deleteCommentById
 );
 

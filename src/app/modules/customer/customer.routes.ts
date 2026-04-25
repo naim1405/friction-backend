@@ -11,7 +11,7 @@ router.get('/',auth(UserRole.SUPER_ADMIN, UserRole.ADMIN), customerController.ge
 router.get('/:id',auth(UserRole.SUPER_ADMIN, UserRole.ADMIN), customerController.getCustomerById);
 router.patch(
 	'/:id',
-	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN,UserRole.CUSTOMER),
 	validateRequest(customerValidation.updateCustomerSchema),
 	customerController.updateCustomerById
 );

@@ -7,6 +7,7 @@ import { stepRoutes } from '../modules/step/step.routes';
 import { locationRoutes } from '../modules/location/location.routes';
 import { voteRoutes } from '../modules/vote/vote.routes';
 import { commentRoutes } from '../modules/comment/comment.routes';
+import { customerRoutes } from '../modules/customer/customer.routes';
 
 const router = express.Router();
 
@@ -22,6 +23,10 @@ const moduleRoutes = [
   {
     path: '/admin',
     route: adminRoutes,
+  },
+  {
+    path: '/customer',
+    route: customerRoutes,
   },
   {
     path: '/tasks',
