@@ -10,7 +10,6 @@ const getStepById = async (id: string) => {
     include: {
       task: true,
       location: true,
-      comments: true,
       votes: true,
     },
   });
@@ -135,10 +134,6 @@ const deleteStepById = async (id: string) => {
   }
 
   const deletedStep = await prisma.$transaction(async (transactionClient) => {
-    await transactionClient.comment.deleteMany({
-      where: { stepId: id },
-    });
-
     await transactionClient.vote.deleteMany({
       where: { stepId: id },
     });

@@ -154,20 +154,23 @@ const getAllTasks = async (
 
 const getTaskById = async (id: string) => {
   try {
-    const isObjectId = /^[a-f\d]{24}$/i.test(id);
     const task = await prisma.task.findFirst({
       where: {
         isPublished: true,
-        OR: [{ slug: id }, ...(isObjectId ? [{ id }] : [])],
+        id: id,
       },
       include: {
+        comments: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         steps: {
           orderBy: {
             order: 'asc',
           },
           include: {
             location: true,
-            comments: true,
             votes: true,
           },
         },
@@ -285,13 +288,17 @@ const createTask = async (payload: ICreateTaskPayload) => {
   return prisma.task.findUnique({
     where: { id: createdTask.id },
     include: {
+      comments: {
+        orderBy: {
+          createdAt: 'desc',
+        },
+      },
       steps: {
         orderBy: {
           order: 'asc',
         },
         include: {
           location: true,
-          comments: true,
           votes: true,
         },
       },
