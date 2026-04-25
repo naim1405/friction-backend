@@ -4,6 +4,7 @@ import { AuthRoutes } from '../modules/auth/auth.routes';
 import { adminRoutes } from '../modules/admin/admin.routes';
 import { taskRoutes } from '../modules/task/task.routes';
 import { stepRoutes } from '../modules/step/step.routes';
+import { locationRoutes } from '../modules/location/location.routes';
 
 const router = express.Router();
 
@@ -27,6 +28,10 @@ const moduleRoutes = [
   {
     path: '/steps',
     route: stepRoutes,
+  },
+  {
+	path: '/locations',
+	route: locationRoutes,
   },
 ];
 
