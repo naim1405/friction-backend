@@ -1,1 +1,1 @@
-// TODO: Implement comment.const.ts
+export const commentFilterableFields = ['stepId'];

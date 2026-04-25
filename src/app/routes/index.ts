@@ -6,6 +6,7 @@ import { taskRoutes } from '../modules/task/task.routes';
 import { stepRoutes } from '../modules/step/step.routes';
 import { locationRoutes } from '../modules/location/location.routes';
 import { voteRoutes } from '../modules/vote/vote.routes';
+import { commentRoutes } from '../modules/comment/comment.routes';
 
 const router = express.Router();
 
@@ -37,6 +38,10 @@ const moduleRoutes = [
   {
 	path: '/votes',
 	route: voteRoutes,
+  },
+  {
+	path: '/comments',
+	route: commentRoutes,
   },
 ];
 

@@ -1,1 +1,8 @@
-// TODO: Implement comment.interface.ts
+export type ICreateCommentPayload = {
+	stepId: string;
+	content: string;
+};
+
+export type ICommentFilters = {
+	stepId?: string;
+};
