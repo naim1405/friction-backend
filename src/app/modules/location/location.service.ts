@@ -31,6 +31,12 @@ const getFallbackLocations = (searchTerm?: string) => {
     }));
 };
 
+const normalizeText = (value: string) =>
+  value.trim().toLowerCase().replace(/\s+/g, ' ');
+
+const buildGeoBucket = (latitude: number, longitude: number) =>
+  `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
+
 const getAllLocations = async (
   filters: ILocationFilters,
   paginationOptions: IPaginationOptions
@@ -132,16 +138,28 @@ const getLocationById = async (id: string) => {
 };
 
 const createLocation = async (payload: ICreateLocationPayload) => {
+  const source = payload.source ?? 'manual';
+  const normalizedName = normalizeText(payload.name);
+  const normalizedCity = payload.city ? normalizeText(payload.city) : undefined;
+  const geoBucket = buildGeoBucket(payload.latitude, payload.longitude);
+  const sourcePlaceId =
+    payload.sourcePlaceId ?? `${source}:${normalizedName}:${geoBucket}`;
+
   const createdLocation = await prisma.location.create({
     data: {
       name: payload.name,
       latitude: payload.latitude,
       longitude: payload.longitude,
+      source,
+      sourcePlaceId,
+      normalizedName,
+      geoBucket,
       ...(payload.address !== undefined ? { address: payload.address } : {}),
       ...(payload.city !== undefined ? { city: payload.city } : {}),
       ...(payload.country !== undefined
         ? { country: payload.country }
         : { country: 'Bangladesh' }),
+      ...(normalizedCity !== undefined ? { normalizedCity } : {}),
       ...(payload.type !== undefined ? { type: payload.type } : {}),
       ...(payload.officeHours !== undefined
         ? { officeHours: payload.officeHours }
@@ -152,8 +170,35 @@ const createLocation = async (payload: ICreateLocationPayload) => {
   return createdLocation;
 };
 
+const findOrCreateLocation = async (payload: ICreateLocationPayload) => {
+  const source = payload.source ?? 'manual';
+  const normalizedName = normalizeText(payload.name);
+  const geoBucket = buildGeoBucket(payload.latitude, payload.longitude);
+  const sourcePlaceId =
+    payload.sourcePlaceId ?? `${source}:${normalizedName}:${geoBucket}`;
+
+  const existingLocation = await prisma.location.findFirst({
+    where: {
+      OR: [
+        { sourcePlaceId },
+        {
+          normalizedName,
+          geoBucket,
+        },
+      ],
+    },
+  });
+
+  if (existingLocation) {
+    return existingLocation;
+  }
+
+  return createLocation(payload);
+};
+
 export const LocationServices = {
   getAllLocations,
   getLocationById,
   createLocation,
+  findOrCreateLocation,
 };

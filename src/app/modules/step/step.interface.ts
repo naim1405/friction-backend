@@ -1,3 +1,5 @@
+import type { ICreateLocationPayload } from '../location/location.interface';
+
 export type ICreateStepPayload = {
   taskId: string;
   title: string;
@@ -8,7 +10,8 @@ export type ICreateStepPayload = {
   documents?: string[];
   tips?: string[];
   contributionLocked?: boolean;
-  locationId?: string;
+  locationId?: string | null;
+  location?: ICreateLocationPayload;
 };
 
 export type IUpdateStepPayload = {
@@ -20,5 +23,6 @@ export type IUpdateStepPayload = {
   documents?: string[];
   tips?: string[];
   contributionLocked?: boolean;
-  locationId?: string;
+  locationId?: string | null;
+  location?: ICreateLocationPayload;
 };

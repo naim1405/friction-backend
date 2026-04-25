@@ -1,5 +1,18 @@
 import { z } from 'zod';
 
+const locationInputSchema = z.object({
+  name: z.string().min(1, 'Location name is required'),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  country: z.string().optional(),
+  source: z.string().optional(),
+  sourcePlaceId: z.string().optional(),
+  latitude: z.number(),
+  longitude: z.number(),
+  type: z.string().optional(),
+  officeHours: z.string().optional(),
+});
+
 const createStepSchema = z.object({
   body: z.object({
     taskId: z.string().min(1, 'Task id is required'),
@@ -14,7 +27,11 @@ const createStepSchema = z.object({
     documents: z.array(z.string()).optional(),
     tips: z.array(z.string()).optional(),
     contributionLocked: z.boolean().optional(),
-    locationId: z.string().optional(),
+    locationId: z.string().min(1).nullable().optional(),
+    location: locationInputSchema.optional(),
+  }).refine((data) => !(data.locationId && data.location), {
+    message: 'Provide either locationId or location, not both',
+    path: ['location'],
   }),
 });
 
@@ -36,7 +53,12 @@ const updateStepSchema = z.object({
       documents: z.array(z.string()).optional(),
       tips: z.array(z.string()).optional(),
       contributionLocked: z.boolean().optional(),
-      locationId: z.string().optional(),
+      locationId: z.string().min(1).nullable().optional(),
+      location: locationInputSchema.optional(),
+    })
+    .refine((data) => !(data.locationId && data.location), {
+      message: 'Provide either locationId or location, not both',
+      path: ['location'],
     })
     .refine((data) => Object.keys(data).length > 0, {
       message: 'At least one field is required',

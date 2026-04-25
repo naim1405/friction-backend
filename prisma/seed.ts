@@ -6,6 +6,18 @@ import {
 import { UserRole } from '../src/generated/prisma/enums';
 import { prisma } from '../src/lib/prisma';
 
+const taskMainLocationSeedIdBySlug: Record<string, string> = {
+  'apply-passport': 'passport-office-agargaon',
+  'open-bank-account': 'dhaka-bank-dhanmondi',
+  'get-trade-license': 'dncc-office-gulshan',
+};
+
+const normalizeText = (value: string) =>
+  value.trim().toLowerCase().replace(/\s+/g, ' ');
+
+const buildGeoBucket = (latitude: number, longitude: number) =>
+  `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
+
 async function seedSuperAdmin() {
   const requiredEnvVars = [
     'SUPERADMINEMAIL',
@@ -133,6 +145,11 @@ async function seedShohojPathData() {
         address: location.address,
         city: location.city,
         country: location.country,
+        source: 'seed',
+        sourcePlaceId: location.seedId,
+        normalizedName: normalizeText(location.name),
+        normalizedCity: normalizeText(location.city),
+        geoBucket: buildGeoBucket(location.latitude, location.longitude),
         latitude: location.latitude,
         longitude: location.longitude,
         type: location.type,
@@ -147,6 +164,17 @@ async function seedShohojPathData() {
   }
 
   for (const task of fallbackTasks) {
+    const mainLocationSeedId = taskMainLocationSeedIdBySlug[task.slug];
+    const mainLocationId = mainLocationSeedId
+      ? locationIdBySeedId.get(mainLocationSeedId)
+      : undefined;
+
+    if (!mainLocationId) {
+      throw new Error(
+        `Missing main location mapping for seeded task: ${task.slug}`
+      );
+    }
+
     await prisma.task.create({
       data: {
         slug: task.slug,
@@ -166,6 +194,7 @@ async function seedShohojPathData() {
         savedCount: task.savedCount,
         popularityScore: task.popularityScore,
         isPublished: task.isPublished,
+        mainLocationId,
         steps: {
           create: task.steps.map((step) => ({
             title: step.title,
@@ -176,9 +205,10 @@ async function seedShohojPathData() {
             documents: step.documents,
             tips: step.tips,
             contributionLocked: step.contributionLocked,
-            ...(step.locationSeedId
-              ? { locationId: locationIdBySeedId.get(step.locationSeedId) }
-              : {}),
+            locationId:
+              (step.locationSeedId
+                ? locationIdBySeedId.get(step.locationSeedId)
+                : undefined) ?? mainLocationId,
           })),
         },
       },
@@ -186,7 +216,7 @@ async function seedShohojPathData() {
   }
 
   console.log(
-    `Seeded ${fallbackTasks.length} tasks and ${fallbackLocations.length} places`
+    `Seeded ${fallbackTasks.length} tasks and ${fallbackLocations.length} locations`
   );
 }
 

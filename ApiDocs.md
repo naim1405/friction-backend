@@ -535,7 +535,31 @@ This is a Task Management System API built with Express.js, TypeScript, and Mong
     "title": "Complete Project",
     "description": "Finish the ongoing project",
     "category": "Work",
-    "isPublished": true
+    "isPublished": true,
+    "mainLocation": {
+      "name": "BRTA Head Office",
+      "address": "Mirpur Road",
+      "city": "Dhaka",
+      "country": "Bangladesh",
+      "latitude": 23.7806,
+      "longitude": 90.407,
+      "type": "Government Office"
+    },
+    "steps": [
+      {
+        "title": "Submit papers",
+        "order": 1
+      },
+      {
+        "title": "Collect card",
+        "order": 2,
+        "location": {
+          "name": "Uttara BRTA Branch",
+          "latitude": 23.8759,
+          "longitude": 90.3795
+        }
+      }
+    ]
   }
   ```
 - **Response (200):**
@@ -551,6 +575,11 @@ This is a Task Management System API built with Express.js, TypeScript, and Mong
       "category": "Work",
       "slug": "complete-project",
       "isPublished": true,
+      "mainLocationId": "location_id",
+      "mainLocation": {
+        "id": "location_id",
+        "name": "BRTA Head Office"
+      },
       "createdAt": "2026-04-25T10:00:00Z",
       "updatedAt": "2026-04-25T10:00:00Z"
     }
@@ -558,6 +587,7 @@ This is a Task Management System API built with Express.js, TypeScript, and Mong
   ```
 - **Validation Rules:**
   - Title: required, minimum 1 character
+  - mainLocationId OR mainLocation: one is required
   - Description: optional
   - Category: optional
   - isPublished: optional (default: false)
@@ -574,7 +604,8 @@ This is a Task Management System API built with Express.js, TypeScript, and Mong
     "title": "Updated Title",
     "description": "Updated description",
     "category": "Updated Category",
-    "isPublished": false
+    "isPublished": false,
+    "mainLocationId": "new_main_location_id"
   }
   ```
 - **Response (200):**
@@ -659,7 +690,8 @@ This is a Task Management System API built with Express.js, TypeScript, and Mong
   - description: optional
   - estimatedTime: optional
   - estimatedCost: optional, non-negative number
-  - locationId: optional, must exist if provided
+  - locationId: optional; if omitted, task main location is used
+  - location: optional office object; backend will create/reuse a location
 
 ### Get Step by ID
 - **Endpoint:** `GET /steps/:id`
@@ -715,6 +747,7 @@ This is a Task Management System API built with Express.js, TypeScript, and Mong
     "locationId": "new_location_id"
   }
   ```
+- Note: set `locationId` to `null` to reset a step back to the task main location.
 - **Response (200):**
   ```json
   {

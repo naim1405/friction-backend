@@ -3,12 +3,30 @@ import httpStatus from '../../../const/httpStatus';
 import ApiError from '../../../errors/ApiError';
 import { prisma } from '../../../lib/prisma';
 import type { ICreateStepPayload, IUpdateStepPayload } from './step.interface';
+import { LocationServices } from '../location/location.service';
+
+const assertLocationExists = async (locationId: string) => {
+  const location = await prisma.location.findUnique({
+    where: { id: locationId },
+    select: { id: true },
+  });
+
+  if (!location) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Location not found');
+  }
+
+  return location.id;
+};
 
 const getStepById = async (id: string) => {
   const step = await prisma.step.findUnique({
     where: { id },
     include: {
-      task: true,
+      task: {
+        include: {
+          mainLocation: true,
+        },
+      },
       location: true,
       votes: true,
     },
@@ -18,28 +36,45 @@ const getStepById = async (id: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Step not found');
   }
 
-  return step;
+  return {
+    ...step,
+    effectiveLocation: step.location ?? step.task.mainLocation,
+  };
 };
 
 const createStep = async (payload: ICreateStepPayload) => {
   const task = await prisma.task.findUnique({
     where: { id: payload.taskId },
-    select: { id: true },
+    select: { id: true, mainLocationId: true },
   });
 
   if (!task) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Task not found');
   }
 
-  if (payload.locationId) {
-    const location = await prisma.location.findUnique({
-      where: { id: payload.locationId },
-      select: { id: true },
-    });
+  if (payload.locationId && payload.location) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Provide either locationId or location, not both'
+    );
+  }
 
-    if (!location) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Location not found');
-    }
+  let resolvedLocationId = task.mainLocationId;
+
+  if (payload.locationId) {
+    resolvedLocationId = await assertLocationExists(payload.locationId);
+  }
+
+  if (payload.location) {
+    const location = await LocationServices.findOrCreateLocation(payload.location);
+    resolvedLocationId = location.id;
+  }
+
+  if (!resolvedLocationId) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Task has no main location. Provide step locationId or location'
+    );
   }
 
   const stepCreateData: Prisma.StepUncheckedCreateInput = {
@@ -62,35 +97,73 @@ const createStep = async (payload: ICreateStepPayload) => {
     ...(payload.contributionLocked !== undefined
       ? { contributionLocked: payload.contributionLocked }
       : {}),
-    ...(payload.locationId !== undefined
-      ? { locationId: payload.locationId }
-      : {}),
+    locationId: resolvedLocationId,
   };
 
-  return prisma.step.create({
+  const createdStep = await prisma.step.create({
     data: stepCreateData,
+  });
+
+  return prisma.step.findUnique({
+    where: { id: createdStep.id },
+    include: {
+      task: {
+        include: {
+          mainLocation: true,
+        },
+      },
+      location: true,
+      votes: true,
+    },
   });
 };
 
 const updateStepById = async (id: string, payload: IUpdateStepPayload) => {
   const step = await prisma.step.findUnique({
     where: { id },
-    select: { id: true, order: true, taskId: true },
+    select: {
+      id: true,
+      order: true,
+      taskId: true,
+      task: {
+        select: {
+          mainLocationId: true,
+        },
+      },
+    },
   });
 
   if (!step) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Step not found');
   }
 
-  if (payload.locationId) {
-    const location = await prisma.location.findUnique({
-      where: { id: payload.locationId },
-      select: { id: true },
-    });
+  if (payload.locationId && payload.location) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Provide either locationId or location, not both'
+    );
+  }
 
-    if (!location) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Location not found');
+  let resolvedLocationId: string | undefined;
+
+  if (payload.locationId !== undefined) {
+    if (payload.locationId === null) {
+      if (!step.task.mainLocationId) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          'Task has no main location to inherit'
+        );
+      }
+
+      resolvedLocationId = step.task.mainLocationId;
+    } else {
+      resolvedLocationId = await assertLocationExists(payload.locationId);
     }
+  }
+
+  if (payload.location) {
+    const location = await LocationServices.findOrCreateLocation(payload.location);
+    resolvedLocationId = location.id;
   }
 
   const stepUpdateData: Prisma.StepUncheckedUpdateInput = {
@@ -112,14 +185,27 @@ const updateStepById = async (id: string, payload: IUpdateStepPayload) => {
     ...(payload.contributionLocked !== undefined
       ? { contributionLocked: payload.contributionLocked }
       : {}),
-    ...(payload.locationId !== undefined
-      ? { locationId: payload.locationId }
+    ...(resolvedLocationId !== undefined
+      ? { locationId: resolvedLocationId }
       : {}),
   };
 
-  return prisma.step.update({
+  const updatedStep = await prisma.step.update({
     where: { id },
     data: stepUpdateData,
+  });
+
+  return prisma.step.findUnique({
+    where: { id: updatedStep.id },
+    include: {
+      task: {
+        include: {
+          mainLocation: true,
+        },
+      },
+      location: true,
+      votes: true,
+    },
   });
 };
 

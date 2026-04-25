@@ -1,5 +1,18 @@
 import { z } from 'zod';
 
+const locationInputSchema = z.object({
+  name: z.string().min(1, 'Location name is required'),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  country: z.string().optional(),
+  source: z.string().optional(),
+  sourcePlaceId: z.string().optional(),
+  latitude: z.number(),
+  longitude: z.number(),
+  type: z.string().optional(),
+  officeHours: z.string().optional(),
+});
+
 const createTaskSchema = z.object({
   body: z.object({
     slug: z.string().min(1, 'Slug is required').optional(),
@@ -16,6 +29,8 @@ const createTaskSchema = z.object({
     communityTip: z.string().optional(),
     coverLabel: z.string().optional(),
     isPublished: z.boolean().optional(),
+    mainLocationId: z.string().min(1, 'Main location id must not be empty').optional(),
+    mainLocation: locationInputSchema.optional(),
     steps: z
       .array(
         z.object({
@@ -27,10 +42,18 @@ const createTaskSchema = z.object({
           documents: z.array(z.string()).optional(),
           tips: z.array(z.string()).optional(),
           contributionLocked: z.boolean().optional(),
-          locationId: z.string().optional(),
+          locationId: z.string().min(1).nullable().optional(),
+          location: locationInputSchema.optional(),
+        })
+        .refine((step) => !(step.locationId && step.location), {
+          message: 'Provide either locationId or location for step override, not both',
+          path: ['location'],
         })
       )
       .optional(),
+  }).refine((data) => !!(data.mainLocationId || data.mainLocation), {
+    message: 'Provide either mainLocationId or mainLocation',
+    path: ['mainLocation'],
   }),
 });
 
@@ -51,6 +74,15 @@ const updateTaskSchema = z.object({
       communityTip: z.string().optional(),
       coverLabel: z.string().optional(),
       isPublished: z.boolean().optional(),
+      mainLocationId: z
+        .string()
+        .min(1, 'Main location id must not be empty')
+        .optional(),
+      mainLocation: locationInputSchema.optional(),
+    })
+    .refine((data) => !(data.mainLocationId && data.mainLocation), {
+      message: 'Provide either mainLocationId or mainLocation, not both',
+      path: ['mainLocation'],
     })
     .refine((data) => Object.keys(data).length > 0, {
       message: 'At least one field is required',

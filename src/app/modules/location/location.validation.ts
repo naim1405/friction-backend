@@ -6,6 +6,8 @@ const createLocationSchema = z.object({
     address: z.string().optional(),
     city: z.string().optional(),
     country: z.string().optional(),
+    source: z.string().optional(),
+    sourcePlaceId: z.string().optional(),
     latitude: z.number(),
     longitude: z.number(),
     type: z.string().optional(),

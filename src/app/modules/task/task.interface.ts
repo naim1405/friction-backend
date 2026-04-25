@@ -1,3 +1,5 @@
+import type { ICreateLocationPayload } from '../location/location.interface';
+
 export type ITaskFilters = {
   searchTerm?: string;
   slug?: string;
@@ -15,7 +17,8 @@ export type ITaskStepPayload = {
   documents?: string[];
   tips?: string[];
   contributionLocked?: boolean;
-  locationId?: string;
+  locationId?: string | null;
+  location?: ICreateLocationPayload;
 };
 
 export type ICreateTaskPayload = {
@@ -33,6 +36,8 @@ export type ICreateTaskPayload = {
   communityTip?: string;
   coverLabel?: string;
   isPublished?: boolean;
+  mainLocationId?: string;
+  mainLocation?: ICreateLocationPayload;
   steps?: ITaskStepPayload[];
 };
 
@@ -51,4 +56,6 @@ export type IUpdateTaskPayload = {
   communityTip?: string;
   coverLabel?: string;
   isPublished?: boolean;
+  mainLocationId?: string;
+  mainLocation?: ICreateLocationPayload;
 };

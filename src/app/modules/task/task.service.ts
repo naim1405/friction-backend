@@ -11,6 +11,7 @@ import type {
   IUpdateTaskPayload,
 } from './task.interface';
 import { fallbackTasks } from '../shohoj/shohoj.data';
+import { LocationServices } from '../location/location.service';
 
 const slugify = (value: string) =>
   value
@@ -19,6 +20,50 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 80);
+
+const isLegacyLocationRequiredFieldError = (error: unknown) => {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const knownError = error as {
+    code?: string;
+    meta?: { field?: string };
+  };
+
+  if (knownError.code !== 'P2032') {
+    return false;
+  }
+
+  return ['source', 'sourcePlaceId', 'normalizedName', 'geoBucket'].includes(
+    knownError.meta?.field ?? ''
+  );
+};
+
+const patchLegacyLocationField = async (field: string, value: string) => {
+  await prisma.$runCommandRaw({
+    update: 'Location',
+    updates: [
+      {
+        q: { [field]: null },
+        u: { $set: { [field]: value } },
+        multi: true,
+      },
+      {
+        q: { [field]: { $exists: false } },
+        u: { $set: { [field]: value } },
+        multi: true,
+      },
+    ],
+  });
+};
+
+const repairLegacyLocationDocuments = async () => {
+  await patchLegacyLocationField('source', 'legacy');
+  await patchLegacyLocationField('sourcePlaceId', 'legacy:unknown');
+  await patchLegacyLocationField('normalizedName', 'unknown');
+  await patchLegacyLocationField('geoBucket', '0.0000,0.0000');
+};
 
 const getUniqueSlug = async (title: string, requestedSlug?: string) => {
   const baseSlug = slugify(requestedSlug || title) || `task-${Date.now()}`;
@@ -70,6 +115,43 @@ const getFallbackTasks = (searchTerm?: string) => {
     }));
 };
 
+const assertLocationExists = async (locationId: string) => {
+  const location = await prisma.location.findUnique({
+    where: { id: locationId },
+    select: { id: true },
+  });
+
+  if (!location) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Location not found');
+  }
+
+  return location.id;
+};
+
+const resolveTaskMainLocationId = async (
+  payload: ICreateTaskPayload | IUpdateTaskPayload
+) => {
+  if (payload.mainLocationId && payload.mainLocation) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Provide either mainLocationId or mainLocation, not both'
+    );
+  }
+
+  if (payload.mainLocationId) {
+    return assertLocationExists(payload.mainLocationId);
+  }
+
+  if (payload.mainLocation) {
+    const location = await LocationServices.findOrCreateLocation(
+      payload.mainLocation
+    );
+    return location.id;
+  }
+
+  return null;
+};
+
 const getAllTasks = async (
   filters: ITaskFilters,
   paginationOptions: IPaginationOptions
@@ -114,20 +196,27 @@ const getAllTasks = async (
     [sortBy]: sortOrder,
   } as Prisma.TaskOrderByWithRelationInput;
 
-  try {
-    let result = await prisma.task.findMany({
+  const fetchTasks = () =>
+    prisma.task.findMany({
       where: whereConditions,
       skip,
       take: limit,
       orderBy,
       include: {
+        mainLocation: true,
         steps: {
           orderBy: {
             order: 'asc',
           },
+          include: {
+            location: true,
+          },
         },
       },
     });
+
+  try {
+    let result = await fetchTasks();
 
     let total = await prisma.task.count({ where: whereConditions });
 
@@ -142,7 +231,23 @@ const getAllTasks = async (
       meta: { page, limit, total },
       data: result,
     };
-  } catch {
+  } catch (error) {
+    if (isLegacyLocationRequiredFieldError(error)) {
+      try {
+        await repairLegacyLocationDocuments();
+
+        const result = await fetchTasks();
+        const total = await prisma.task.count({ where: whereConditions });
+
+        return {
+          meta: { page, limit, total },
+          data: result,
+        };
+      } catch {
+        // If repair or retry fails, fallback is returned below.
+      }
+    }
+
     const fallbackResult = getFallbackTasks(searchTerm);
 
     return {
@@ -160,6 +265,7 @@ const getTaskById = async (id: string) => {
         id: id,
       },
       include: {
+        mainLocation: true,
         comments: {
           orderBy: {
             createdAt: 'desc',
@@ -222,22 +328,55 @@ const getTaskById = async (id: string) => {
 };
 
 const createTask = async (payload: ICreateTaskPayload) => {
+  const mainLocationId = await resolveTaskMainLocationId(payload);
+
+  if (!mainLocationId) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Task main location is required. Provide mainLocationId or mainLocation'
+    );
+  }
+
   const slug = await getUniqueSlug(payload.title, payload.slug);
-  const steps = (payload.steps ?? []).map((step, index) => ({
-    title: step.title,
-    order: step.order ?? index + 1,
-    estimatedCost: step.estimatedCost ?? 0,
-    documents: step.documents ?? [],
-    tips: step.tips ?? [],
-    contributionLocked: step.contributionLocked ?? false,
-    ...(step.description !== undefined
-      ? { description: step.description }
-      : {}),
-    ...(step.estimatedTime !== undefined
-      ? { estimatedTime: step.estimatedTime }
-      : {}),
-    ...(step.locationId ? { locationId: step.locationId } : {}),
-  }));
+  const steps = await Promise.all(
+    (payload.steps ?? []).map(async (step, index) => {
+      if (step.locationId && step.location) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          'Provide either locationId or location for step override, not both'
+        );
+      }
+
+      let stepLocationId = mainLocationId;
+
+      if (step.locationId) {
+        stepLocationId = await assertLocationExists(step.locationId);
+      }
+
+      if (step.location) {
+        const createdLocation = await LocationServices.findOrCreateLocation(
+          step.location
+        );
+        stepLocationId = createdLocation.id;
+      }
+
+      return {
+        title: step.title,
+        order: step.order ?? index + 1,
+        estimatedCost: step.estimatedCost ?? 0,
+        documents: step.documents ?? [],
+        tips: step.tips ?? [],
+        contributionLocked: step.contributionLocked ?? false,
+        locationId: stepLocationId,
+        ...(step.description !== undefined
+          ? { description: step.description }
+          : {}),
+        ...(step.estimatedTime !== undefined
+          ? { estimatedTime: step.estimatedTime }
+          : {}),
+      };
+    })
+  );
 
   const taskCreateData: Prisma.TaskCreateInput = {
     slug,
@@ -272,6 +411,9 @@ const createTask = async (payload: ICreateTaskPayload) => {
     ...(payload.isPublished !== undefined
       ? { isPublished: payload.isPublished }
       : {}),
+    mainLocation: {
+      connect: { id: mainLocationId },
+    },
     ...(steps.length > 0
       ? {
           steps: {
@@ -288,6 +430,7 @@ const createTask = async (payload: ICreateTaskPayload) => {
   return prisma.task.findUnique({
     where: { id: createdTask.id },
     include: {
+      mainLocation: true,
       comments: {
         orderBy: {
           createdAt: 'desc',
@@ -315,6 +458,8 @@ const updateTaskById = async (id: string, payload: IUpdateTaskPayload) => {
   if (!existingTask) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Task not found');
   }
+
+  const mainLocationId = await resolveTaskMainLocationId(payload);
 
   const result = await prisma.task.update({
     where: { id },
@@ -350,6 +495,13 @@ const updateTaskById = async (id: string, payload: IUpdateTaskPayload) => {
         : {}),
       ...(payload.isPublished !== undefined
         ? { isPublished: payload.isPublished }
+        : {}),
+      ...(mainLocationId
+        ? {
+            mainLocation: {
+              connect: { id: mainLocationId },
+            },
+          }
         : {}),
     },
   });

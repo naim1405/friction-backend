@@ -10,6 +10,8 @@ export type ICreateLocationPayload = {
   address?: string;
   city?: string;
   country?: string;
+  source?: string;
+  sourcePlaceId?: string;
   latitude: number;
   longitude: number;
   type?: string;
