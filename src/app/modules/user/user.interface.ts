@@ -6,3 +6,12 @@ export type IAdmin = {
     phone: string;
   };
 };
+
+export type ICustomer = {
+  password: string;
+  customer: {
+    email: string;
+    name: string;
+    phone: string;
+  };
+};
