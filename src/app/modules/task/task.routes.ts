@@ -1,9 +1,9 @@
 import express from 'express';
-import { UserRole } from '../../../generated/prisma/enums';
-import auth from '../../middlewares/auth';
-import validateRequest from '../../middlewares/validateRequest';
 import { TaskController } from './task.controller';
 import { TaskValidation } from './task.validation';
+import { UserRole } from '../../../generated/prisma/browser';
+import auth from '../../middlewares/auth';
+import validateRequest from '../../middlewares/validateRequest';
 
 const router = express.Router();
 
