@@ -1,6 +1,6 @@
 services:
-  db:
-    container_name: db
+  mongodb:
+    container_name: mongodb
     image: mongo:7
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     environment:
@@ -20,7 +20,7 @@ services:
     container_name: db-init-replica
     image: mongo:7
     depends_on:
-      db:
+      mongodb:
         condition: service_started
     entrypoint:
       - bash
@@ -29,7 +29,7 @@ services:
         until mongosh --host db:27017 --quiet --eval "db.adminCommand('ping').ok" > /dev/null 2>&1; do
           sleep 1
         done
-        mongosh --host db:27017 --quiet --eval "try { rs.status() } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'db:27017'}]}) }"
+        mongosh --host mongodb:27017 --quiet --eval "try { rs.status() } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongodb:27017'}]}) }"
     restart: "no"
 
   server:
@@ -42,7 +42,7 @@ services:
     env_file:
       - ./.env
     environment:
-      DATABASE_URL: mongodb://db:27017/test_db?replicaSet=rs0&directConnection=true
+      DATABASE_URL: mongodb://mongodb:27017/test_db?replicaSet=rs0&directConnection=true
     ports:
       - "5000:5000"
     volumes:

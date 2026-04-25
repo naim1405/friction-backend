@@ -5,12 +5,8 @@ generator client {
 
 datasource db {
     provider = "mongodb"
-    url      = env("DATABASE_URL")
 }
 
-// =====================
-// USER
-// =====================
 model User {
     id        String     @id @default(auto()) @map("_id") @db.ObjectId
     email     String     @unique
@@ -21,17 +17,17 @@ model User {
     status    UserStatus @default(ACTIVE)
     role      UserRole
 
-    // Relations (manual references in MongoDB)
+    // Existing relations
     admins               Admin[]
     activeTokens         ActiveToken[]
     resetPasswordRecords ResetPasswordRecord[]
 
+    comments Comment[]
+    votes    Vote[]
+
     @@map("users")
 }
 
-// =====================
-// ADMIN
-// =====================
 model Admin {
     id        String  @id @default(auto()) @map("_id") @db.ObjectId
     name      String
@@ -39,7 +35,6 @@ model Admin {
     phone     String  @unique
     isDeleted Boolean @default(false)
 
-    // Relation (no FK enforcement in MongoDB)
     userId String @db.ObjectId
     user   User?  @relation(fields: [userId], references: [id])
 
@@ -49,9 +44,7 @@ model Admin {
     @@map("admins")
 }
 
-// =====================
-// ACTIVE TOKEN
-// =====================
+
 model ActiveToken {
     id         String    @id @default(auto()) @map("_id") @db.ObjectId
     tokenId    String    @unique
@@ -68,9 +61,6 @@ model ActiveToken {
     @@map("active_token")
 }
 
-// =====================
-// RESET PASSWORD
-// =====================
 model ResetPasswordRecord {
     id        String   @id @default(auto()) @map("_id") @db.ObjectId
     userId    String   @db.ObjectId
@@ -85,9 +75,88 @@ model ResetPasswordRecord {
     @@map("reset_password_records")
 }
 
-// =====================
-// ENUMS (UNCHANGED)
-// =====================
+model Task {
+    id          String   @id @default(auto()) @map("_id") @db.ObjectId
+    title       String
+    description String?
+    category    String?
+    isPublished Boolean  @default(true)
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    steps       Step[]
+}
+
+model Step {
+    id            String   @id @default(auto()) @map("_id") @db.ObjectId
+    title         String
+    description   String?
+    order         Int
+
+    estimatedTime String?
+    estimatedCost Float?
+
+    taskId        String   @db.ObjectId
+    task          Task     @relation(fields: [taskId], references: [id])
+
+    locationId    String?  @db.ObjectId
+    location      Location? @relation(fields: [locationId], references: [id])
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+
+    votes         Vote[]
+    comments      Comment[]
+}
+
+model Location {
+    id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    name      String
+    address   String?
+    city      String?
+    country   String?
+
+    latitude  Float
+    longitude Float
+
+    type      String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    steps     Step[]
+}
+
+model Vote {
+    id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    value     Int
+
+    userId    String   @db.ObjectId
+    stepId    String   @db.ObjectId
+
+    user      User     @relation(fields: [userId], references: [id])
+    step      Step     @relation(fields: [stepId], references: [id])
+
+    createdAt DateTime @default(now())
+
+    @@unique([userId, stepId])
+}
+
+model Comment {
+    id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    content   String
+
+    userId    String   @db.ObjectId
+    stepId    String   @db.ObjectId
+
+    user      User     @relation(fields: [userId], references: [id])
+    step      Step     @relation(fields: [stepId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
 enum TokenType {
     ACCESS
     REFRESH
@@ -98,7 +167,6 @@ enum AuditAction {
     READ
     UPDATE
     DELETE
-
     LOGIN
     LOGOUT
     LOGIN_FAILED
